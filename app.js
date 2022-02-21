@@ -1,8 +1,6 @@
 if (process.env.NODE_ENV !== 'production') {
 	require('dotenv').config();
 }
-console.log(process.env.SECRET);
-
 const express = require('express');
 const path = require('path');
 const mongoose = require('mongoose');
@@ -25,7 +23,8 @@ const campgroundRoutes = require('./routes/campgrounds');
 const reviewRoutes = require('./routes/reviews');
 const userRoutes = require('./routes/users');
 
-mongoose.connect('mongodb://localhost:27017/yelp-camp', {
+const dbUrl = process.env.DB_URL || 'mongodb://localhost:27017/yelp-camp';
+mongoose.connect(dbUrl, {
 	useNewUrlParser: true,
 	useCreateIndex: true,
 	useUnifiedTopology: true,
@@ -51,8 +50,20 @@ app.use(
 		replaceWith: '_'
 	})
 );
-
+const secret = process.env.SECRET || 'thisisasecret';
+const MongoStore = require('connect-mongo');
+const store = MongoStore.create({
+	mongoUrl: dbUrl,
+	touchAfter: 24 * 60 * 60,
+	crypto: {
+		secret: secret
+	}
+});
+store.on('error', (e) => {
+	console.log('Session store error', e);
+});
 const sessionConfig = {
+	store,
 	name: 'session',
 	secret: 'thisshudbeabtrsecret',
 	resave: false,
